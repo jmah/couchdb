@@ -12,7 +12,7 @@
 -module(objc_dispatch).
 -on_load(init/0).
 
--export([create/3, query_view_version/1]).
+-export([create/3, query_view_version/2]).
 -export([map/2, map/3, reduce/5, reduce/6]).
 -export([app_create/2]).
 -export([app_show_doc/4, app_validate_update/6, app_filter_docs/5, app_filter_view/4]).
@@ -27,8 +27,8 @@
 create(Name, MapKeys, RedKeys) ->
     create_nif(Name, MapKeys, RedKeys).
 
-query_view_version(MapKey) ->
-    {ok, Vers} = query_view_version_nif(MapKey),
+query_view_version(MapKey, RedKeys) ->
+    {ok, Vers} = query_view_version_nif(MapKey, RedKeys),
     Vers.
 
 map(QueueRef, DocJson) ->
@@ -84,7 +84,7 @@ not_loaded(Line) ->
 create_nif(Name, MapKeys, RedKeys) ->
     not_loaded(?LINE).
 
-query_view_version_nif(MapKey) ->
+query_view_version_nif(MapKey, RedKeys) ->
     not_loaded(?LINE).
 
 map_nif(QueueRef, ReplyRef, DocJson) ->

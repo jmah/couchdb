@@ -139,26 +139,32 @@ static ERL_NIF_TERM create(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 }
 
 
-// query_view_version_nif(MapKey) ->
+// query_view_version_nif(MapKey, RedKeys) ->
 static ERL_NIF_TERM query_view_version(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-    if (argc != 1) return enif_make_badarg(env);
-    ERL_NIF_TERM mapKeyTerm = argv[0];
-    if (!enif_is_binary(env, mapKeyTerm))
-        return enif_make_badarg(env);
-
+    if (argc != 2) return enif_make_badarg(env);
     return safely(env, ^ERL_NIF_TERM {
-        NSString* mapKey = term_to_nsstring(env, mapKeyTerm);
+        NSString* mapKey = term_to_nsstring(env, argv[0]);
+        NSArray* reduceKeys = term_to_nsarray(env, argv[1]);
+        if (mapKey == nil || reduceKeys == nil)
+            return enif_make_badarg(env);
 
-        // Just use a no-op mapping assuming the fn def is a unique string
-        // TODO: Is there anything better to do here?
-        NSString *identifier = mapKey;
+        CouchbaseCallbacks* callbacks = [CouchbaseCallbacks sharedInstance];
+        NSMutableArray* identifiers = [NSMutableArray arrayWithCapacity:reduceKeys.count + 1];
+        NSString* mapVersId = [callbacks mapBlockVersionIdentifierForKey:mapKey];
+        if (mapVersId == nil)
+            [NSException raise:NSInvalidArgumentException
+                        format:@"no view version identifier for map block with key \"%@\"; you must register all blocks before querying the view", mapKey];
+        [identifiers addObject:mapVersId];
+        for (NSString* reduceKey in reduceKeys) {
+            NSString* reduceVersId = [callbacks reduceBlockVersionIdentifierForKey:reduceKey];
+            if (reduceVersId == nil)
+                [NSException raise:NSInvalidArgumentException
+                            format:@"no view version identifier for reduce block with key \"%@\"; you must register all blocks before querying the view", reduceKey];
+            [identifiers addObject:reduceVersId];
+        }
 
-        ERL_NIF_TERM response;
-        if (identifier.length == 0 || !nsstring_to_term(env, identifier, &response))
-            return util_mk_error_str(env, "no view version identifier");
-
-        return util_mk_ok(env, response);
+        return util_mk_ok(env, objc_to_term(env, identifiers));
     });
 }
 
@@ -350,7 +356,7 @@ static ERL_NIF_TERM app_validate_update(ErlNifEnv *env, int argc, const ERL_NIF_
 static ErlNifFunc nif_funcs[] = {
     // view server:
     {"create_nif", 3, create},
-    {"query_view_version_nif", 1, query_view_version},
+    {"query_view_version_nif", 2, query_view_version},
     {"map_nif", 3, map},
     {"reduce_nif", 6, reduce},
     // app server:

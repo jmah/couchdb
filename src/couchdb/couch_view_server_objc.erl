@@ -21,14 +21,8 @@ is_lightweight() ->
     true.
 
 add_view_deps(View) ->
-    % Catch any error here; we don't really care what it is, only
-    % that there is an error (so we don't correspond to any other
-    % pre-computed views). The underlying error will be hit when
-    % (and if) the view is actually built.
-    ObjCVers = try objc_dispatch:query_view_version(View#view.def)
-    catch
-        _ -> error
-    end,
+    RedKeys = [FunSrc || {_Name, FunSrc} <- View#view.reduce_funs],
+    ObjCVers = objc_dispatch:query_view_version(View#view.def, RedKeys),
     [View, ObjCVers].
 
 get_server(_Arg, Maps, ReduceStruct) ->

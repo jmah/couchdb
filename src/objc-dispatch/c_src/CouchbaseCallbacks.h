@@ -44,13 +44,18 @@ typedef BOOL (^CouchValidateUpdateBlock)(NSDictionary* doc,
 
 - (NSString*) generateKey;
 
-- (void) registerMapBlock: (CouchMapBlock)block forKey: (NSString*)key;
-- (void) registerReduceBlock: (CouchReduceBlock)block forKey: (NSString*)key;
+#define CouchVersionedBlock(blk)  blk versionDependentString:@#blk
+- (void) registerMapBlock: (CouchMapBlock)block versionDependentString: (NSString*)source forKey: (NSString*)key;
+- (void) registerReduceBlock: (CouchReduceBlock)block versionDependentString: (NSString*)source forKey: (NSString*)key;
+
 - (void) registerValidateUpdateBlock: (CouchValidateUpdateBlock)block forKey: (NSString*)key;
 
 - (CouchMapBlock) mapBlockForKey: (NSString*)key;
 - (CouchReduceBlock) reduceBlockForKey: (NSString*)key;
 - (CouchValidateUpdateBlock) validateUpdateBlockForKey: (NSString*)key;
+
+- (NSString*) mapBlockVersionIdentifierForKey: (NSString*)key;
+- (NSString*) reduceBlockVersionIdentifierForKey: (NSString*)key;
 
 @end
 
